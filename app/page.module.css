@@ -1,0 +1,522 @@
+.container {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: #050505;
+}
+
+/* Massive Neon Glow */
+.glow {
+  position: absolute;
+  width: 1000px;
+  height: 1000px;
+  background: radial-gradient(circle, rgba(255, 69, 0, 0.12) 0%, rgba(255, 69, 0, 0) 60%);
+  top: -300px;
+  left: -300px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Floating Flares */
+.flare {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #ffaa00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px 4px rgba(255, 100, 0, 0.6), 0 0 20px 8px rgba(255, 69, 0, 0.3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+
+/* Hero Section - Centered Layout */
+.hero {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 20px 0;
+  flex: 1;
+  width: 100%;
+}
+
+.heroContent {
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 20;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 85, 0, 0.08);
+  border: 1px solid rgba(255, 85, 0, 0.2);
+  color: #ff8c00;
+  padding: 8px 16px;
+  border-radius: 100px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 24px;
+  box-shadow: 0 0 20px rgba(255, 85, 0, 0.1);
+}
+
+.title {
+  font-family: var(--font-outfit), sans-serif;
+  font-size: 4.5rem;
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0 0 24px 0;
+  background: linear-gradient(180deg, #ffffff 40%, #ffc899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.description {
+  color: #8a8a93;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  margin: 0 0 40px 0;
+  font-weight: 400;
+  max-width: 900px;
+}
+
+.actions {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.primaryBtn {
+  background: #fff;
+  color: #000;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.primaryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+}
+
+.secondaryBtn {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #a1a1aa;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+}
+
+.secondaryBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* IDE Mockup & Black Hole Container */
+.heroBottom {
+  position: relative;
+  width: 100%;
+  max-width: 1300px; /* Increased size to highlight more */
+  margin-top: 120px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Layer 1: Massive sweeping horizontal radiation */
+.blackHoleRadiation {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 120vw;
+  max-width: 1600px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 120, 0, 0.9) 0%, rgba(255, 69, 0, 0.4) 40%, transparent 70%);
+  z-index: 0;
+  filter: blur(25px);
+  animation: emitRadiance 4s ease-in-out infinite alternate;
+}
+
+@keyframes emitRadiance {
+  0% { opacity: 0.6; filter: blur(25px); }
+  100% { opacity: 1; filter: blur(40px); }
+}
+
+/* Layer 2: Medium circular glow */
+.blackHoleRing {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(255, 150, 50, 0.6) 0%, transparent 60%);
+  z-index: 1;
+  filter: blur(35px);
+  animation: emitRing 5s ease-in-out infinite alternate;
+}
+
+@keyframes emitRing {
+  0% { opacity: 0.5; filter: blur(35px); }
+  100% { opacity: 1; filter: blur(55px); }
+}
+
+/* Layer 3: The Black Hole Core & Inner Rim */
+.blackHoleCenter {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: #050505;
+  box-shadow: 
+    0 -15px 50px 15px rgba(255, 150, 50, 0.9),
+    0 -30px 100px 40px rgba(255, 80, 0, 0.7),
+    inset 0 20px 40px -10px rgba(255, 150, 50, 0.6);
+  z-index: 2;
+  animation: pulseCore 3s ease-in-out infinite alternate;
+}
+
+@keyframes pulseCore {
+  0% {
+    box-shadow: 
+      0 -15px 50px 15px rgba(255, 150, 50, 0.8),
+      0 -30px 100px 40px rgba(255, 80, 0, 0.6),
+      inset 0 20px 40px -10px rgba(255, 150, 50, 0.5);
+  }
+  100% {
+    box-shadow: 
+      0 -25px 70px 25px rgba(255, 180, 80, 1),
+      0 -50px 130px 60px rgba(255, 100, 0, 0.9),
+      inset 0 30px 60px -5px rgba(255, 180, 80, 0.8);
+  }
+}
+
+.ideWrapper {
+  position: relative;
+  width: 100%;
+  /* Removed fixed aspect-ratio, let height be determined by content */
+  border-radius: 16px;
+  background: #0f0f11;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 200, 100, 0.4);
+  box-shadow: 0 -15px 80px rgba(255, 100, 0, 0.2), 0 40px 100px rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: perspective(1200px) rotateX(4deg);
+  transition: transform 0.1s ease-out;
+  z-index: 3;
+}
+
+/* Floating Flares */
+.flare {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: #ffaa00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px 4px rgba(255, 100, 0, 0.6), 0 0 20px 8px rgba(255, 69, 0, 0.3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Custom Cursor */
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8), 0 0 20px 5px rgba(255, 100, 0, 0.8);
+  transition: width 0.3s ease, height 0.3s ease, background 0.3s ease, box-shadow 0.3s ease, border 0.3s ease;
+}
+
+.cursorActive {
+  width: 40px !important;
+  height: 40px !important;
+  background: rgba(255, 100, 0, 0.1) !important;
+  border: 1px solid rgba(255, 100, 0, 0.8) !important;
+  box-shadow: 0 0 20px rgba(255, 100, 0, 0.4) !important;
+}
+
+.cursorTrail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 85, 0, 0.8);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+  filter: blur(2px);
+  opacity: 0.8;
+}
+
+.ideWrapper:hover {
+  transform: perspective(1000px) rotateY(0deg) rotateX(0deg);
+}
+
+.ideBody {
+  display: flex;
+  flex: 1;
+  background: #050505;
+}
+
+.dashboardContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 32px 32px 32px 32px;
+  gap: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dashHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.dashTitle h3 {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+}
+
+.dashTitle p {
+  font-family: var(--font-inter), sans-serif;
+  color: #a1a1aa;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.dashStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.dashContent {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.metricsGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.metricCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  height: 100%;
+  box-sizing: border-box;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.metricCard:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.metricLabel {
+  font-family: var(--font-inter), sans-serif;
+  color: #a1a1aa;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metricValue {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.metricTrendPositive {
+  font-family: var(--font-inter), sans-serif;
+  color: #ff5500;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.chartContainer {
+  flex: 0 0 40%;
+  min-width: 250px;
+  max-width: 320px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.chartHeader {
+  margin-bottom: 12px;
+}
+
+.chartHeader h4 {
+  font-family: var(--font-inter), sans-serif;
+  color: #fff;
+  margin: 0;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.chartWrapper {
+  flex: 1;
+  width: 100%;
+  position: relative;
+}
+
+.chartSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.variable { color: #f8fafc; }
+
+/* Cookie Banner */
+.cookieBanner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(24, 24, 27, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px 24px;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  z-index: 50;
+}
+
+.cookieText {
+  color: #a1a1aa;
+  font-size: 0.85rem;
+}
+
+.cookieActions {
+  display: flex;
+  gap: 12px;
+}
+
+.cookieBtnSecondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 100px;
+  font-size: 0.85rem;
+}
+
+.cookieBtnPrimary {
+  background: #fff;
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 100px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+@media (max-width: 1024px) {
+  .hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .heroLeft {
+    margin: 0 auto;
+  }
+  .actions {
+    justify-content: center;
+  }
+  .header {
+    padding: 20px;
+  }
+  .nav {
+    display: none;
+  }
+  .title {
+    font-size: 3.5rem;
+  }
+}

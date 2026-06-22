@@ -176,17 +176,18 @@ IMPORTANT: This is a VOICE interview. The candidate is speaking their answer. Do
 Evaluate the answer and respond in EXACTLY this JSON format (no markdown, no code blocks, just raw JSON):
 {
   "score": <number 0-10>,
-  "feedback": "<1-2 sentence evaluation specific to ${modeConfig.label} standards>",
+  "feedback": "<Start by explicitly justifying the exact score given (e.g. 'This response scored a 3/10 because...'). Then provide a professional, constructive evaluation specific to ${modeConfig.label} standards.>",
   "strengths": ["<specific strength>", "<specific strength>"],
   "improvements": ["<specific area to improve>", "<specific area to improve>"]
 }
 
-Scoring for ${modeConfig.label} (${modeConfig.difficulty}):
-- 9-10: Excellent — exceeds ${modeConfig.label} expectations
-- 7-8: Good — meets ${modeConfig.label} expectations  
-- 5-6: Average — partially meets expectations, gaps present
-- 3-4: Weak — significant gaps for this role
-- 0-2: Poor — no relevant content or completely wrong
+Scoring Rubric for ${modeConfig.label} (${modeConfig.difficulty}):
+- 9-10: Excellent — Comprehensive, highly detailed, technically accurate, and expertly articulated. Exceeds expectations.
+- 7-8: Good — Solid understanding with only minor gaps. Meets expectations for the role.
+- 5-6: Average — High-level or brief response. Lacks deep technical specifics, or relies on buzzwords without thorough explanation.
+- 3-4: Weak — Extremely brief, vague, or misses the core of the question entirely. If assigning a 3 or 4, you MUST explicitly state exactly what critical information was missing.
+- 1-2: Poor — Factually incorrect, totally off-topic, or shows fundamental misunderstanding.
+- 0: Unanswered/Zero Effort — The candidate said nothing of substance, literally just repeated the question back, or said "I don't know". DO NOT award pity points (e.g., do not give a 3 just for "acknowledging the tool"). If there is no real technical answer, the score MUST be 0.
 
 Only output the JSON, nothing else.`;
 }

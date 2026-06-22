@@ -193,37 +193,15 @@ const AdminCard = ({ children, style = {}, title }: { children: React.ReactNode,
 );
 
 // ─── Main Admin Dashboard Page ────────────────────────────────────────────────
-export default function DashboardPage() {
+export default function DemoDashboardPage() {
   const [feedback, setFeedback] = useState<InterviewFeedback | null>(null);
   const [isDemo, setIsDemo] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'questions'>('overview');
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('interviewFeedback');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        const safe_feedback: InterviewFeedback = {
-          overallScore: parsed.overallScore ?? 0,
-          overallGrade: parsed.overallGrade ?? 'Average',
-          roundScores: Array.isArray(parsed.roundScores) ? parsed.roundScores : [],
-          categoryScores: Array.isArray(parsed.categoryScores) ? parsed.categoryScores : [],
-          evaluations: Array.isArray(parsed.evaluations) ? parsed.evaluations : [],
-          strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
-          improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
-          recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-          summary: parsed.summary ?? '',
-          companyMode: parsed.companyMode,
-        };
-        setFeedback(safe_feedback);
-      } catch (err) {
-        setIsDemo(true);
-        setFeedback(getDemoFeedback());
-      }
-    } else {
-      setIsDemo(true);
-      setFeedback(getDemoFeedback());
-    }
+    // Force demo state for the showcase URL
+    setIsDemo(true);
+    setFeedback(getDemoFeedback());
   }, []);
 
   if (!feedback) {
@@ -448,7 +426,30 @@ function getDemoFeedback(): InterviewFeedback {
       { category: 'Communication', score: 19, maxScore: 20, percentage: 95 },
       { category: 'Problem Solving', score: 16, maxScore: 20, percentage: 80 },
     ],
-    evaluations: [],
+    evaluations: [
+      {
+        questionId: 'demo-tech-1',
+        round: 'technical',
+        category: 'Algorithms',
+        question: 'Explain how you would optimize finding the shortest path in a weighted graph.',
+        answer: 'I would use Dijkstra\'s algorithm with a priority queue or min-heap to repeatedly pick the shortest known path, keeping time complexity at O(V + E log V).',
+        score: 9,
+        feedback: 'Excellent answer. You correctly identified Dijkstra\'s algorithm and the specific data structures needed for optimal time complexity.',
+        strengths: ['Identified optimal algorithm', 'Correctly stated time complexity', 'Mentioned min-heap structure'],
+        improvements: ['Could have mentioned A* as an alternative for specific use cases']
+      },
+      {
+        questionId: 'demo-proj-1',
+        round: 'project',
+        category: 'System Design',
+        question: 'How did you handle state management across your frontend in your last large project?',
+        answer: 'I primarily used Context API with useReducer for global state to avoid prop drilling, though I think I might use Zustand next time for less boilerplate.',
+        score: 7,
+        feedback: 'Good overview of your practical experience. Context + useReducer is standard, but in very large apps it can cause unnecessary re-renders without proper memoization.',
+        strengths: ['Clear rationale for avoiding prop drilling', 'Awareness of modern alternatives like Zustand'],
+        improvements: ['Did not discuss performance implications of Context API', 'Missed mentioning memoization techniques']
+      }
+    ],
     strengths: ['Excellent behavioral responses', 'Strong high-level architecture design', 'Clear communication'],
     improvements: ['Brush up on algorithmic time complexities', 'Detail database indexing better'],
     recommendations: [],

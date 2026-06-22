@@ -34,39 +34,56 @@ export async function POST(req: Request) {
     const prompt = buildFeedbackPrompt(evaluations, companyMode);
     
     let feedback;
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
+    let attempts = 0;
+    const maxAttempts = 5;
 
-      const text = response.text || '';
-      const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      feedback = JSON.parse(cleanText);
-    } catch (apiError) {
-      console.warn('Gemini feedback failed (likely rate limit). Using fallback feedback.', apiError);
-      const avgScore = evaluations.reduce((a, b) => a + b.score, 0) / evaluations.length || 0;
-      const overallScore = Math.round(avgScore * 10);
-      feedback = {
-        overallScore,
-        overallGrade: overallScore >= 80 ? 'Good' : overallScore >= 60 ? 'Average' : 'Needs Improvement',
-        strengths: ['Completed all interview rounds'],
-        improvements: ['API rate limit hit, real feedback unavailable'],
-        recommendations: ['Wait a bit for the API quota to reset'],
-        summary: `You scored ${overallScore}/100. We hit the API rate limit so detailed feedback is unavailable.`,
-      };
+    while (attempts < maxAttempts) {
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+        });
+
+        const text = response.text || '';
+        const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        feedback = JSON.parse(cleanText);
+        break; // Success, exit loop
+      } catch (apiError: any) {
+        attempts++;
+        const isRateLimitOrOverload = apiError?.status === 429 || apiError?.status === 503 || apiError?.message?.includes('429') || apiError?.message?.includes('503') || apiError?.message?.includes('quota') || apiError?.message?.includes('demand');
+        
+        console.warn(`[Gemini API] Feedback generation failed (Attempt ${attempts}/${maxAttempts}). Reason: ${apiError?.message || 'Unknown error'}`);
+        
+        if (attempts < maxAttempts && isRateLimitOrOverload) {
+          console.warn('Rate limit or high demand hit. Waiting 15 seconds before retrying...');
+          await new Promise(r => setTimeout(r, 15000));
+        } else {
+          // Fallback if all retries fail or if it's an unrecoverable JSON parse error
+          const avgScore = evaluations.reduce((a, b) => a + b.score, 0) / evaluations.length || 0;
+          const overallScore = Math.round(avgScore * 10);
+          feedback = {
+            overallScore,
+            overallGrade: overallScore >= 80 ? 'Good' : overallScore >= 60 ? 'Average' : 'Needs Improvement',
+            strengths: ['Completed all interview rounds'],
+            improvements: ['API rate limit hit, real feedback unavailable'],
+            recommendations: ['Wait a bit for the API quota to reset'],
+            summary: `You scored ${overallScore}/100. We hit the API rate limit so detailed feedback is unavailable.`,
+          };
+          break;
+        }
+      }
     }
 
     return NextResponse.json({
-      overallScore: Math.min(100, Math.max(0, feedback.overallScore)),
-      overallGrade: feedback.overallGrade || 'Average',
+      overallScore: Math.min(100, Math.max(0, feedback?.overallScore || 0)),
+      overallGrade: feedback?.overallGrade || 'Average',
       roundScores,
       categoryScores,
       evaluations,
-      strengths: feedback.strengths || [],
-      improvements: feedback.improvements || [],
-      recommendations: feedback.recommendations || [],
-      summary: feedback.summary || 'Interview completed.',
+      strengths: Array.isArray(feedback?.strengths) ? feedback.strengths : ['Completed all interview rounds'],
+      improvements: Array.isArray(feedback?.improvements) ? feedback.improvements : ['Practice articulating your answers more clearly'],
+      recommendations: Array.isArray(feedback?.recommendations) ? feedback.recommendations : ['Focus on structuring your answers'],
+      summary: feedback?.summary || 'Interview completed. Provide more detailed technical answers for a better score.',
       companyMode,
     } satisfies InterviewFeedback);
   } catch (error) {

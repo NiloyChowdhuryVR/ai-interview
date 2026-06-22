@@ -1,0 +1,73 @@
+.section {
+  width: 100%;
+  padding: 120px 20px;
+  position: relative;
+  z-index: 10;
+  background: transparent;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.header h2 {
+  font-family: var(--font-outfit), sans-serif;
+  font-size: 3rem;
+  margin: 0 0 16px 0;
+  background: linear-gradient(180deg, #ffffff 40%, #ffc899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header p {
+  font-family: var(--font-inter), sans-serif;
+  color: #a1a1aa;
+  font-size: 1.1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 40px 30px;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 85, 0, 0.3);
+  background: rgba(255, 85, 0, 0.02);
+}
+
+.icon {
+  font-size: 2.5rem;
+  margin-bottom: 24px;
+}
+
+.card h3 {
+  font-family: var(--font-inter), sans-serif;
+  color: #fff;
+  font-size: 1.2rem;
+  margin: 0 0 16px 0;
+  font-weight: 600;
+}
+
+.card p {
+  font-family: var(--font-inter), sans-serif;
+  color: #a1a1aa;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}

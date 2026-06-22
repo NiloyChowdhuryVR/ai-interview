@@ -63,7 +63,17 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
         return;
       }
 
-      // Cancel any ongoing speech
+      // Instead of using the shared cleanup for this utterance's events,
+      // we use local variables to ensure old events don't resolve this new promise.
+      let isSettled = false;
+      const localResolve = () => {
+        if (!isSettled) {
+          isSettled = true;
+          resolve();
+        }
+      };
+
+      // Cancel any ongoing speech - this might fire async events for old utterances
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
@@ -72,12 +82,13 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
       utterance.volume = 1.0;
       utterance.lang = 'en-US';
 
-      // Try to pick a good English voice
+      // Try to pick a consistently male English voice across OS/Browsers
       const voices = window.speechSynthesis.getVoices();
+      
       const preferredVoice = voices.find(
-        (v) => v.lang.startsWith('en') && v.name.includes('Google')
+        (v) => v.lang.startsWith('en') && (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Daniel') || v.name.includes('Arthur') || v.name.includes('James'))
       ) || voices.find(
-        (v) => v.lang.startsWith('en-US')
+        (v) => v.lang.startsWith('en-US') && !v.name.includes('Female') && !v.name.includes('Zira') && !v.name.includes('Samantha')
       ) || voices.find(
         (v) => v.lang.startsWith('en')
       );
@@ -86,7 +97,8 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
         utterance.voice = preferredVoice;
       }
 
-      resolveRef.current = resolve;
+      // We still update the global ref so `cancel()` can resolve it if needed
+      resolveRef.current = localResolve;
 
       utterance.onstart = () => {
         setIsSpeaking(true);
@@ -94,10 +106,12 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
 
       utterance.onend = () => {
         cleanup();
+        localResolve();
       };
 
       utterance.onerror = (event) => {
         cleanup();
+        localResolve();
         // Don't reject for cancel/interrupt — those are normal
         if (event.error !== 'canceled' && event.error !== 'interrupted') {
           console.warn('Speech synthesis error:', event.error);
@@ -113,11 +127,10 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
       const wordCount = text.split(/\s+/).length;
       const estimatedMs = Math.max(3000, wordCount * 400 + 2000);
       timeoutRef.current = setTimeout(() => {
-        if (resolveRef.current) {
-          console.warn('Speech synthesis timeout — forcing resolve after', estimatedMs, 'ms');
-          window.speechSynthesis.cancel();
-          cleanup();
-        }
+        console.warn('Speech synthesis timeout — forcing resolve after', estimatedMs, 'ms');
+        window.speechSynthesis.cancel();
+        cleanup();
+        localResolve();
       }, estimatedMs);
     });
   }, [cleanup, startResumeWorkaround]);

@@ -121,13 +121,21 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
     interimTextRef.current = '';
     setTranscript('');
 
-    try {
-      recognitionRef.current.start();
-      isListeningRef.current = true;
-      setIsListening(true);
-    } catch (e) {
-      console.error('Failed to start recognition:', e);
-    }
+    const tryStart = (retryCount = 0) => {
+      try {
+        recognitionRef.current?.start();
+        isListeningRef.current = true;
+        setIsListening(true);
+      } catch (e) {
+        console.warn(`Failed to start recognition (attempt ${retryCount + 1}):`, e);
+        if (retryCount < 3) {
+          // It might still be stopping from a previous question. Wait and retry.
+          setTimeout(() => tryStart(retryCount + 1), 500);
+        }
+      }
+    };
+    
+    tryStart();
   }, []);
 
   const stopListening = useCallback(() => {

@@ -9,6 +9,8 @@ import { useAudioVisualizer } from '@/hooks/useAudioVisualizer';
 import { AnswerEvaluation, InterviewRound, Question } from '@/lib/types';
 import { COMPANY_MODES, ROUND_LABELS } from '@/lib/companyModes';
 import Link from 'next/link';
+import AIVisualizer from '@/components/AIVisualizer';
+import UserVisualizer from '@/components/UserVisualizer';
 
 export default function InterviewPage() {
   const router = useRouter();
@@ -36,15 +38,23 @@ export default function InterviewPage() {
   } = store;
 
   const { transcript: speechTranscript, isListening, isSupported: sttSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
-  const { speak, cancel: cancelSpeech } = useSpeechSynthesis();
+  const { speak, cancel: cancelSpeech, isSpeaking } = useSpeechSynthesis();
   const { canvasRef, startVisualizer, stopVisualizer } = useAudioVisualizer();
 
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [setupError, setSetupError] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  
   const isInitializedRef = useRef(false);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ─── Hydration & Timer ────────────────────────────────────────────────────────
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Get fresh store state
   const getStore = useCallback(() => useInterviewStore.getState(), []);
@@ -340,22 +350,24 @@ export default function InterviewPage() {
   const handleEndInterview = doEndInterview;
 
   // ─── Browser support check ───────────────────────────────────────────────────
-  if (typeof window !== 'undefined' && !sttSupported) {
+  if (!mounted) return null; // Fix SSR hydration mismatch
+
+  if (!sttSupported) {
     return (
-      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <div style={{ padding: '20px', fontFamily: 'sans-serif', height: '100vh', background: '#050505', color: '#fff' }}>
         <h2>Browser Not Supported</h2>
         <p>Speech Recognition requires Google Chrome or Microsoft Edge.</p>
-        <Link href="/">← Back to Home</Link>
+        <Link href="/" style={{ color: '#ff5500' }}>← Back to Home</Link>
       </div>
     );
   }
 
   if (setupError) {
     return (
-      <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <div style={{ padding: '20px', fontFamily: 'sans-serif', height: '100vh', background: '#050505', color: '#fff' }}>
         <h2>Setup Error</h2>
         <p style={{ color: '#ef4444' }}>{setupError}</p>
-        <Link href="/" style={{ color: '#2563eb' }}>← Go back to Home</Link>
+        <Link href="/" style={{ color: '#ff5500' }}>← Go back to Home</Link>
       </div>
     );
   }
@@ -366,103 +378,191 @@ export default function InterviewPage() {
   const modeConfig = companyMode ? COMPANY_MODES[companyMode] : null;
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '900px', margin: '0 auto' }}>
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: '#050505', color: '#fff', overflow: 'hidden', fontFamily: 'var(--font-inter), sans-serif' }}>
+      
+      {/* Visualizers */}
+      <AIVisualizer isTalking={isSpeaking} isDimmed={isListening} />
+      <UserVisualizer isActive={isListening} />
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <h1 style={{ margin: 0 }}>AI Interview</h1>
-          {modeConfig && <span style={{ fontSize: '14px', color: '#6b7280' }}>{modeConfig.emoji} {modeConfig.label}</span>}
-        </div>
-        <div style={{ textAlign: 'right', fontSize: '14px', color: '#6b7280' }}>
-          <div>⏱ {formatTime(elapsedTime)}</div>
-          <div>Total answers: {evaluations.length}</div>
-        </div>
-      </div>
-
-      {/* Round Progress */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        {selectedRounds.map(round => (
-          <span key={round} style={{
-            padding: '4px 12px',
-            borderRadius: '20px',
-            fontSize: '13px',
-            background: round === currentRound ? '#2563eb' : '#e5e7eb',
-            color: round === currentRound ? 'white' : '#6b7280',
-          }}>
-            {ROUND_LABELS[round]}
+      {/* Header Info */}
+      <div style={{ position: 'absolute', top: '30px', left: '40px', zIndex: 10 }}>
+        <h1 style={{ margin: '0 0 8px 0', fontFamily: 'var(--font-outfit), sans-serif', fontSize: '2rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {modeConfig?.emoji} {modeConfig?.label || 'AI Interview'}
+        </h1>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', color: '#a1a1aa', fontSize: '0.95rem' }}>
+          <span>⏱ {formatTime(elapsedTime)}</span>
+          <span>•</span>
+          <span style={{ color: status === 'listening' ? '#10b981' : '#ff5500' }}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
-        ))}
+          {currentRound && (
+            <>
+              <span>•</span>
+              <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.85rem' }}>
+                {ROUND_LABELS[currentRound]}
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Status + Question Counter */}
-      <div style={{ padding: '10px', background: '#e5e7eb', borderRadius: '4px', marginBottom: '16px' }}>
-        <strong>Status:</strong> {status} &nbsp;|&nbsp;
-        {currentRound && <><strong>Round:</strong> {ROUND_LABELS[currentRound]} &nbsp;|&nbsp;</>}
-        <strong>Question:</strong> {Math.min(currentQuestionIndex + 1, totalRoundQuestions)} / {totalRoundQuestions}
-      </div>
+      {/* Top Right Toggle Button */}
+      <button 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        style={{
+          position: 'absolute', top: '30px', right: '40px', zIndex: 30,
+          background: isSidebarOpen ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          color: '#fff', padding: '10px 20px', borderRadius: '100px',
+          cursor: 'pointer', fontFamily: 'var(--font-inter), sans-serif', fontWeight: 600,
+          transition: 'all 0.3s ease'
+        }}
+      >
+        {isSidebarOpen ? 'Close Transcript' : '💬 View Transcript'}
+      </button>
 
-      {/* Controls */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+      {/* Floating Bottom Controls (Meet/Discord Style) */}
+      <div style={{
+        position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)',
+        display: 'flex', gap: '16px', background: 'rgba(20, 20, 22, 0.8)',
+        backdropFilter: 'blur(20px)', padding: '12px 24px', borderRadius: '100px',
+        border: '1px solid rgba(255, 255, 255, 0.05)', zIndex: 20, boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+        alignItems: 'center', justifyContent: 'center'
+      }}>
         {status === 'listening' && (
           <button
-            onClick={submitAnswer}
-            disabled={!speechTranscript.trim()}
-            style={{ padding: '10px 18px', background: speechTranscript.trim() ? '#10b981' : '#9ca3af', color: 'white', border: 'none', borderRadius: '6px', cursor: speechTranscript.trim() ? 'pointer' : 'not-allowed' }}
+            onClick={!isListening ? startListening : submitAnswer}
+            disabled={isListening && !speechTranscript.trim()}
+            style={{ 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              padding: '12px 24px', 
+              background: !isListening ? 'rgba(239, 68, 68, 0.2)' : speechTranscript.trim() ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)', 
+              color: !isListening ? '#ef4444' : speechTranscript.trim() ? '#10b981' : '#6b7280', 
+              border: !isListening ? '1px solid rgba(239, 68, 68, 0.5)' : speechTranscript.trim() ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid transparent', 
+              borderRadius: '100px', 
+              cursor: (!isListening || speechTranscript.trim()) ? 'pointer' : 'not-allowed',
+              fontFamily: 'var(--font-inter)', fontWeight: 600, transition: 'all 0.2s', whiteSpace: 'nowrap'
+            }}
           >
-            ✅ Submit Answer
+            <span style={{ fontSize: '1.2rem' }}>{!isListening ? '⚠️' : '🎤'}</span> 
+            {!isListening ? 'Mic Error - Click to Retry' : speechTranscript.trim() ? 'Submit Answer' : 'Listening...'}
           </button>
         )}
+        
         {status === 'listening' && (
-          <button onClick={handleSkipQuestion} style={{ padding: '10px 18px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+          <button 
+            onClick={handleSkipQuestion} 
+            style={{ 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              padding: '12px 24px', background: 'rgba(255, 255, 255, 0.05)', color: '#fff', 
+              border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '100px', cursor: 'pointer',
+              fontFamily: 'var(--font-inter)', fontWeight: 600, transition: 'all 0.2s', whiteSpace: 'nowrap'
+            }}
+          >
             ⏭ Skip
           </button>
         )}
+
         {status !== 'completed' && status !== 'idle' && (
-          <button onClick={handleEndInterview} style={{ padding: '10px 18px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-            🛑 End Interview
+          <button 
+            onClick={handleEndInterview} 
+            style={{ 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              padding: '12px 24px', background: '#ef4444', color: '#fff', 
+              border: 'none', borderRadius: '100px', cursor: 'pointer',
+              fontFamily: 'var(--font-inter)', fontWeight: 600, transition: 'all 0.2s',
+              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)', whiteSpace: 'nowrap'
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.98.98 0 0 1 0-1.4C3.36 8.58 7.42 7 12 7s8.64 1.58 11.71 4.68c.39.39.39 1.03 0 1.42l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+            </svg>
+            End Call
           </button>
         )}
       </div>
 
-      {/* Mic status */}
-      <div style={{ padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '16px' }}>
-        <strong>Microphone:</strong> {isListening ? '🔴 Recording...' : '⚫ Off'}
-        {speechTranscript && (
-          <div style={{ marginTop: '8px' }}>
-            <p style={{ fontStyle: 'italic', color: '#374151', margin: 0, fontSize: '14px',
-              maxHeight: '80px', overflowY: 'auto', lineHeight: '1.5',
-              padding: '6px', background: '#f9fafb', borderRadius: '4px', border: '1px solid #e5e7eb' }}>
-              "{speechTranscript.length > 300 ? '...' + speechTranscript.slice(-300) : speechTranscript}"
-            </p>
-            <small style={{ color: '#6b7280' }}>{speechTranscript.split(/\s+/).filter(Boolean).length} words captured</small>
-          </div>
-        )}
-        <canvas ref={canvasRef} width={600} height={60} style={{ display: 'block', marginTop: '8px', width: '100%', background: '#f3f4f6', borderRadius: '4px' }} />
+      {/* Collapsible Transcript Sidebar */}
+      <div style={{
+        position: 'fixed', top: 0, right: isSidebarOpen ? 0 : '-400px', width: '400px', height: '100vh',
+        background: 'rgba(15, 15, 18, 0.95)', backdropFilter: 'blur(30px)',
+        borderLeft: '1px solid rgba(255, 255, 255, 0.05)', zIndex: 25,
+        transition: 'right 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        display: 'flex', flexDirection: 'column'
+      }}>
+        <div style={{ padding: '30px 24px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-outfit)', fontSize: '1.4rem' }}>Transcript</h2>
+        </div>
+        
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {transcript.length === 0 && <p style={{ color: '#6b7280', textAlign: 'center', marginTop: '20px' }}>No messages yet.</p>}
+          
+          {transcript.map((entry, i) => {
+            const isAI = entry.role === 'interviewer';
+            return (
+              <div key={i} style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: isAI ? 'flex-start' : 'flex-end',
+                width: '100%'
+              }}>
+                <span style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px', marginLeft: isAI ? '4px' : '0', marginRight: isAI ? '0' : '4px' }}>
+                  {isAI ? '🤖 AI Interviewer' : 'You'} • {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <div style={{
+                  background: isAI ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 85, 0, 0.15)',
+                  border: isAI ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(255, 85, 0, 0.3)',
+                  padding: '12px 16px', borderRadius: '16px',
+                  borderBottomLeftRadius: isAI ? '4px' : '16px',
+                  borderBottomRightRadius: !isAI ? '4px' : '16px',
+                  maxWidth: '90%', fontSize: '0.95rem', lineHeight: 1.5,
+                  color: isAI ? '#e5e7eb' : '#fff'
+                }}>
+                  {entry.text}
+                </div>
+              </div>
+            );
+          })}
+          
+          {isProcessing && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.05)',
+                padding: '12px 16px', borderRadius: '16px', borderBottomLeftRadius: '4px',
+                color: '#a1a1aa', fontSize: '0.95rem'
+              }}>
+                <span style={{ display: 'inline-block', animation: 'pulse 1.5s infinite' }}>Analyzing response...</span>
+              </div>
+            </div>
+          )}
+          <div ref={transcriptEndRef} />
+        </div>
       </div>
-
-
-      {/* Transcript */}
-      <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', padding: '12px', height: '450px', overflowY: 'auto' }}>
-        <h3 style={{ margin: '0 0 12px 0' }}>Transcript</h3>
-        {transcript.length === 0 && <p style={{ color: '#9ca3af' }}>Loading interview setup...</p>}
-        {transcript.map((entry, i) => (
-          <div key={i} style={{
-            marginBottom: '12px',
-            padding: '10px',
-            background: entry.role === 'interviewer' ? '#dbeafe' : '#d1fae5',
-            borderRadius: '6px',
-            borderLeft: `4px solid ${entry.role === 'interviewer' ? '#2563eb' : '#10b981'}`,
+      
+      {/* Subtitles Overlay (When Sidebar is Closed) */}
+      {!isSidebarOpen && transcript.length > 0 && (
+        <div style={{
+          position: 'absolute', bottom: '130px', left: '50%', transform: 'translateX(-50%)',
+          width: '90%', maxWidth: '1200px', textAlign: 'center', zIndex: 15, pointerEvents: 'none'
+        }}>
+          <p style={{
+            fontSize: '1.35rem', fontFamily: 'var(--font-outfit), sans-serif', color: '#fff',
+            textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.7)',
+            lineHeight: 1.6, letterSpacing: '0.5px', margin: 0, opacity: 0.95
           }}>
-            <strong>{entry.role === 'interviewer' ? '🤖 AI Interviewer' : '🎤 You'}:</strong>
-            {entry.round && <span style={{ marginLeft: '8px', fontSize: '11px', color: '#6b7280', background: '#e5e7eb', padding: '1px 6px', borderRadius: '8px' }}>{ROUND_LABELS[entry.round]}</span>}
-            <p style={{ margin: '6px 0 2px' }}>{entry.text}</p>
-            <small style={{ color: '#6b7280' }}>{new Date(entry.timestamp).toLocaleTimeString()}</small>
-          </div>
-        ))}
-        {isProcessing && <p style={{ color: '#2563eb' }}>⏳ Processing...</p>}
-        <div ref={transcriptEndRef} />
-      </div>
+            {transcript[transcript.length - 1].text}
+          </p>
+        </div>
+      )}
+
+      {/* Global styles for pulse animation */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes pulse {
+          0% { opacity: 0.5; }
+          50% { opacity: 1; }
+          100% { opacity: 0.5; }
+        }
+      `}} />
+
     </div>
   );
 }

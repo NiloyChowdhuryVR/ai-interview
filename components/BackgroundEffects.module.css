@@ -1,0 +1,55 @@
+/* Massive Neon Glow */
+.glow {
+  position: absolute;
+  width: 1000px;
+  height: 1000px;
+  background: radial-gradient(circle, rgba(255, 69, 0, 0.12) 0%, rgba(255, 69, 0, 0) 60%);
+  top: -300px;
+  left: -300px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Floating Flares */
+.flare {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #ffaa00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px 4px rgba(255, 100, 0, 0.6), 0 0 20px 8px rgba(255, 69, 0, 0.3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Custom Cursor & Trail */
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 999999;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8), 0 0 20px 5px rgba(255, 100, 0, 0.8);
+  transition: width 0.3s ease, height 0.3s ease, background 0.3s ease, box-shadow 0.3s ease, border 0.3s ease;
+}
+
+.cursorTrail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 85, 0, 0.8);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 999998;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+  filter: blur(2px);
+  opacity: 0.8;
+}
