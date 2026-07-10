@@ -148,77 +148,48 @@ Only output the JSON, nothing else.`;
 
 // ─── Evaluation Prompt ────────────────────────────────────────────────────────
 
-export function buildEvaluatePrompt(
-  question: string,
-  answer: string,
-  category: string,
-  round: InterviewRound,
-  companyMode: CompanyMode
-): string {
-  const modeConfig = COMPANY_MODES[companyMode];
-  const roundContext = round === 'technical'
-    ? `This is a technical skills question. Evaluate based on correctness and depth.`
-    : round === 'project'
-    ? `This is a project deep-dive question. Evaluate based on technical ownership and clarity.`
-    : `This is an HR/behavioral question. Evaluate based on communication, self-awareness, and culture fit.`;
-
-  return `You are an expert interviewer evaluating a candidate for a ${modeConfig.label} interview.
-
-${roundContext}
-Company Standard: ${modeConfig.difficulty} level, ${modeConfig.label} expectations.
-
-Question: ${question}
-Topic/Category: ${category}
-Candidate's Answer: ${answer}
-
-IMPORTANT: This is a VOICE interview. The candidate is speaking their answer. Do NOT penalize them for lack of exact code syntax or minor verbal stumbles. Focus on their logical approach, intuition, and understanding of the concepts.
-
-Evaluate the answer and respond in EXACTLY this JSON format (no markdown, no code blocks, just raw JSON):
-{
-  "score": <number 0-10>,
-  "feedback": "<Start by explicitly justifying the exact score given (e.g. 'This response scored a 3/10 because...'). Then provide a professional, constructive evaluation specific to ${modeConfig.label} standards.>",
-  "strengths": ["<specific strength>", "<specific strength>"],
-  "improvements": ["<specific area to improve>", "<specific area to improve>"]
-}
-
-Scoring Rubric for ${modeConfig.label} (${modeConfig.difficulty}):
-- 9-10: Excellent — Comprehensive, highly detailed, technically accurate, and expertly articulated. Exceeds expectations.
-- 7-8: Good — Solid understanding with only minor gaps. Meets expectations for the role.
-- 5-6: Average — High-level or brief response. Lacks deep technical specifics, or relies on buzzwords without thorough explanation.
-- 3-4: Weak — Extremely brief, vague, or misses the core of the question entirely. If assigning a 3 or 4, you MUST explicitly state exactly what critical information was missing.
-- 1-2: Poor — Factually incorrect, totally off-topic, or shows fundamental misunderstanding.
-- 0: Unanswered/Zero Effort — The candidate said nothing of substance, literally just repeated the question back, or said "I don't know". DO NOT award pity points (e.g., do not give a 3 just for "acknowledging the tool"). If there is no real technical answer, the score MUST be 0.
-
-Only output the JSON, nothing else.`;
-}
-
-// ─── Final Feedback Prompt ────────────────────────────────────────────────────
-
 export function buildFeedbackPrompt(evaluations: AnswerEvaluation[], companyMode: CompanyMode): string {
   const modeConfig = COMPANY_MODES[companyMode];
 
   const evalSummary = evaluations.map((e, i) =>
-    `Q${i + 1} [${e.round.toUpperCase()} | ${e.category}]: ${e.question}\nAnswer: ${e.answer}\nScore: ${e.score}/10\nFeedback: ${e.feedback}`
+    `Q${i + 1} [${e.round.toUpperCase()} | ${e.category}]: ${e.question}\nCandidate's Answer: ${e.answer}`
   ).join('\n\n');
 
   return `You are an expert interviewer providing final feedback after a complete ${modeConfig.label} interview.
 
-All interview evaluations:
+Here is the transcript of all questions asked and the candidate's answers:
 ${evalSummary}
 
-Generate a comprehensive interview feedback report in EXACTLY this JSON format (no markdown, no code blocks, just raw JSON):
+IMPORTANT: This was a VOICE interview. The candidate spoke their answers. Do NOT penalize them for lack of exact code syntax or minor verbal stumbles. Focus on their logical approach, intuition, and understanding of the concepts.
+
+Evaluate EVERY single answer individually, and then provide an overall summary of the interview.
+Respond in EXACTLY this JSON format (no markdown, no code blocks, just raw JSON):
 {
   "overallScore": <number 0-100>,
   "overallGrade": "<one of: Excellent, Good, Average, Needs Improvement, Poor>",
-  "strengths": ["<top strength>", "<top strength>", "<top strength>"],
-  "improvements": ["<area to improve>", "<area to improve>", "<area to improve>"],
+  "summary": "<3-4 sentence overall summary of the candidate's performance for ${modeConfig.label} specifically>",
+  "strengths": ["<top overall strength>", "<top overall strength>", "<top overall strength>"],
+  "improvements": ["<overall area to improve>", "<overall area to improve>", "<overall area to improve>"],
   "recommendations": ["<actionable learning recommendation>", "<recommendation>", "<recommendation>"],
-  "summary": "<3-4 sentence overall summary of the candidate's performance for ${modeConfig.label} specifically>"
+  "evaluations": [
+    {
+      "questionId": "<must exactly match the question ID from the input transcript, e.g. tech-1, proj-1-1, hr-1. Use sequential IDs if none provided>",
+      "score": <number 0-10>,
+      "feedback": "<Explicitly justify the exact score given. Then provide professional, constructive feedback.>",
+      "strengths": ["<specific strength for this answer>"],
+      "improvements": ["<specific improvement for this answer>"]
+    }
+  ]
 }
 
-Base the overall score on all individual question scores weighted equally.
-Frame all feedback in the context of ${modeConfig.label} interview standards.
-Be constructive, specific, and actionable. Only output the JSON, nothing else.`;
+Scoring Rubric per Question (${modeConfig.difficulty} level):
+- 9-10: Excellent — Comprehensive, highly detailed, technically accurate.
+- 7-8: Good — Solid understanding with minor gaps.
+- 5-6: Average — High-level or brief response. Lacks deep technical specifics.
+- 3-4: Weak — Extremely brief, vague, or misses the core of the question.
+- 0-2: Poor/Unanswered — Factually incorrect, skipped, or zero effort.
+
+CRITICAL: Your "evaluations" array MUST contain exactly one evaluation object for every question asked above, in the exact same order. Base the overall score on all individual question scores weighted equally. Only output the JSON, nothing else.`;
 }
 
 // ─── Category Score Calculator ────────────────────────────────────────────────

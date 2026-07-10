@@ -233,19 +233,17 @@ export default function InterviewPage() {
     setIsProcessing(true);
 
     try {
-      const res = await fetch('/api/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: currentQuestion.text,
-          answer,
-          category: currentQuestion.category,
-          questionId: currentQuestion.id,
-          round: currentRound,
-          companyMode,
-        }),
-      });
-      const evaluation: AnswerEvaluation = await res.json();
+      const evaluation: AnswerEvaluation = {
+        questionId: currentQuestion.id,
+        question: currentQuestion.text,
+        answer,
+        category: currentQuestion.category,
+        round: currentRound,
+        score: 0,
+        feedback: 'Pending evaluation...',
+        strengths: [],
+        improvements: [],
+      };
       addEvaluation(evaluation);
 
       const acks = [
@@ -258,7 +256,7 @@ export default function InterviewPage() {
       addTranscriptEntry({ role: 'interviewer', text: ack, timestamp: Date.now() });
       try { await speak(ack); } catch { /* continue */ }
     } catch (e) {
-      console.error('Evaluation failed:', e);
+      console.error('Failed to submit answer:', e);
     }
 
     setIsProcessing(false);

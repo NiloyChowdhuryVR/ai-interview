@@ -12,25 +12,21 @@ export async function POST(req: Request) {
       companyMode: CompanyMode;
     };
 
-    const categoryScores = calculateCategoryScores(evaluations);
-    const roundScores = calculateRoundScores(evaluations).filter((rs): rs is NonNullable<typeof rs> => rs !== null);
-
     if (!process.env.GEMINI_API_KEY) {
-      const avgScore = evaluations.reduce((a, b) => a + b.score, 0) / evaluations.length;
-      const overallScore = Math.round(avgScore * 10);
       return NextResponse.json({
-        overallScore,
-        overallGrade: overallScore >= 80 ? 'Good' : overallScore >= 60 ? 'Average' : 'Needs Improvement',
-        roundScores,
-        categoryScores,
+        overallScore: 0,
+        overallGrade: 'Needs Improvement',
+        roundScores: calculateRoundScores(evaluations).filter((rs): rs is NonNullable<typeof rs> => rs !== null),
+        categoryScores: calculateCategoryScores(evaluations),
         evaluations,
         strengths: ['Completed all interview rounds', 'Showed willingness to answer all questions'],
         improvements: ['Configure GEMINI_API_KEY for detailed AI feedback'],
         recommendations: ['Set up Google Gemini API for comprehensive evaluation'],
-        summary: `You scored ${overallScore}/100 across ${evaluations.length} questions. Configure your Gemini API key for detailed feedback.`,
+        summary: `You scored 0/100 across ${evaluations.length} questions. Configure your Gemini API key for detailed feedback.`,
         companyMode,
       } satisfies InterviewFeedback);
     }
+    
     const prompt = buildFeedbackPrompt(evaluations, companyMode);
     
     let feedback;
@@ -59,27 +55,42 @@ export async function POST(req: Request) {
           await new Promise(r => setTimeout(r, 15000));
         } else {
           // Fallback if all retries fail or if it's an unrecoverable JSON parse error
-          const avgScore = evaluations.reduce((a, b) => a + b.score, 0) / evaluations.length || 0;
-          const overallScore = Math.round(avgScore * 10);
           feedback = {
-            overallScore,
-            overallGrade: overallScore >= 80 ? 'Good' : overallScore >= 60 ? 'Average' : 'Needs Improvement',
+            overallScore: 0,
+            overallGrade: 'Needs Improvement',
             strengths: ['Completed all interview rounds'],
             improvements: ['API rate limit hit, real feedback unavailable'],
             recommendations: ['Wait a bit for the API quota to reset'],
-            summary: `You scored ${overallScore}/100. We hit the API rate limit so detailed feedback is unavailable.`,
+            summary: `You scored 0/100. We hit the API rate limit so detailed feedback is unavailable.`,
+            evaluations: []
           };
           break;
         }
       }
     }
 
+    // Merge generated evaluations back into the original transcript
+    const enrichedEvaluations = evaluations.map((e, index) => {
+      const generatedEval = feedback?.evaluations?.find((ge: any) => ge.questionId === e.questionId) 
+                         || feedback?.evaluations?.[index];
+      return {
+        ...e,
+        score: generatedEval?.score || 0,
+        feedback: generatedEval?.feedback || 'Feedback generation failed.',
+        strengths: generatedEval?.strengths || [],
+        improvements: generatedEval?.improvements || []
+      };
+    });
+
+    const categoryScores = calculateCategoryScores(enrichedEvaluations);
+    const roundScores = calculateRoundScores(enrichedEvaluations).filter((rs): rs is NonNullable<typeof rs> => rs !== null);
+
     return NextResponse.json({
       overallScore: Math.min(100, Math.max(0, feedback?.overallScore || 0)),
       overallGrade: feedback?.overallGrade || 'Average',
       roundScores,
       categoryScores,
-      evaluations,
+      evaluations: enrichedEvaluations,
       strengths: Array.isArray(feedback?.strengths) ? feedback.strengths : ['Completed all interview rounds'],
       improvements: Array.isArray(feedback?.improvements) ? feedback.improvements : ['Practice articulating your answers more clearly'],
       recommendations: Array.isArray(feedback?.recommendations) ? feedback.recommendations : ['Focus on structuring your answers'],
