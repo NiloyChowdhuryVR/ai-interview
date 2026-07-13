@@ -1,4 +1,4 @@
-import { AnswerEvaluation, ResumeData, InterviewRound } from './types';
+import { AnswerEvaluation, ResumeData, InterviewRound, InterviewContext, Question } from './types';
 import { CompanyMode } from './types';
 import { COMPANY_MODES } from './companyModes';
 
@@ -141,6 +141,89 @@ Respond in EXACTLY this JSON format (no markdown, no code blocks, just raw JSON)
       "difficulty": "easy|medium|hard"
     }
   ]
+}
+
+Only output the JSON, nothing else.`;
+}
+
+// ─── Adaptive Next Question Prompt ────────────────────────────────────────────
+
+export function buildAdaptiveNextPrompt(
+  lastQuestion: string,
+  lastAnswer: string,
+  resumeData: ResumeData,
+  companyMode: CompanyMode,
+  round: InterviewRound,
+  context: InterviewContext,
+  questionNumber: number,
+  totalQuestions: number
+): string {
+  const modeConfig = COMPANY_MODES[companyMode];
+  const roundFocus = round === 'technical' ? modeConfig.technicalFocus
+    : round === 'project' ? modeConfig.projectFocus
+    : modeConfig.hrFocus;
+
+  const resumeContext = [
+    resumeData.skills.length > 0 ? `Skills: ${resumeData.skills.join(', ')}` : '',
+    resumeData.projects.length > 0 ? `Projects: ${resumeData.projects.map(p => `${p.name} (${p.technologies.join(', ')})`).join('; ')}` : '',
+    resumeData.experience.length > 0 ? `Experience: ${resumeData.experience.join(', ')}` : '',
+  ].filter(Boolean).join('\n');
+
+  const previousHistory = context.assessments.map((a, i) => 
+    `Q${i + 1}: [${a.quality.toUpperCase()}] Topics: ${a.topicsCovered.join(', ')}`
+  ).join('\n');
+
+  return `You are an expert ${modeConfig.label} interviewer conducting a live ${round} round interview.
+You are a HUMAN interviewer, not a script reader. Be conversational and adaptive.
+
+CANDIDATE RESUME:
+${resumeContext}
+
+INTERVIEW CONTEXT:
+- Round: ${round}
+- Company: ${modeConfig.label} (${modeConfig.difficulty} level)
+- This is question ${questionNumber} of ${totalQuestions} in this round
+- Current difficulty level: ${context.currentDifficulty}
+- Technologies candidate has mentioned so far: ${context.technologiesMentioned.length > 0 ? context.technologiesMentioned.join(', ') : 'None yet'}
+- Projects candidate has discussed: ${context.projectsMentioned.length > 0 ? context.projectsMentioned.join(', ') : 'None yet'}
+- Concepts already covered: ${context.conceptsDiscussed.length > 0 ? context.conceptsDiscussed.join(', ') : 'None yet'}
+- Topics already asked about: ${context.topicsCovered.length > 0 ? context.topicsCovered.join(', ') : 'None yet'}
+${previousHistory ? `\nPERFORMANCE HISTORY:\n${previousHistory}` : ''}
+
+ROUND FOCUS:
+${roundFocus}
+
+LAST QUESTION ASKED:
+"${lastQuestion}"
+
+CANDIDATE'S ANSWER:
+"${lastAnswer}"
+
+IMPORTANT RULES:
+1. This is a VOICE interview. Never ask them to write code. Ask them to explain, describe, or walk through their approach.
+2. Do NOT include greetings, filler, or meta-instructions in the question text.
+3. Do NOT repeat topics already covered. Ask about something NEW.
+4. If the candidate mentioned a specific technology, project, or concept in their answer, you MAY reference it naturally in your next question (e.g., "You mentioned Redis earlier — how did you handle cache invalidation?").
+5. Adjust difficulty based on performance: if they're doing well, go deeper; if struggling, ask something more foundational.
+6. The question MUST be relevant to the ${round} round focus area.
+
+Respond in EXACTLY this JSON format (no markdown, no code blocks, just raw JSON):
+{
+  "assessment": {
+    "quality": "weak|average|strong",
+    "confidence": "low|medium|high",
+    "technicalDepth": "shallow|moderate|deep",
+    "extractedEntities": ["technology or concept the candidate mentioned"],
+    "topicsCovered": ["broad topic this Q&A covered"]
+  },
+  "nextQuestion": {
+    "id": "${round}-${questionNumber + 1}",
+    "text": "The next interview question — adapted to the candidate's performance and previous answers",
+    "category": "The topic/skill this question covers",
+    "difficulty": "easy|medium|hard"
+  },
+  "difficultyAdjustment": "increase|maintain|decrease",
+  "acknowledgment": "A brief, natural 1-sentence acknowledgment of their answer (e.g., 'Interesting approach with Redis.' or 'Good overview. Let me ask you something different.')"
 }
 
 Only output the JSON, nothing else.`;

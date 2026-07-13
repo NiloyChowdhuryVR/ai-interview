@@ -112,4 +112,31 @@ export interface InterviewState {
   endTime: number | null;
   isMicActive: boolean;
   isSpeaking: boolean;
+  interviewContext: InterviewContext;
+}
+
+// ─── Adaptive Interview Engine ────────────────────────────────────────────────
+export interface AnswerAssessment {
+  questionId: string;
+  quality: 'weak' | 'average' | 'strong';
+  confidence: 'low' | 'medium' | 'high';
+  technicalDepth: 'shallow' | 'moderate' | 'deep';
+  extractedEntities: string[];
+  topicsCovered: string[];
+}
+
+export interface InterviewContext {
+  technologiesMentioned: string[];
+  projectsMentioned: string[];
+  conceptsDiscussed: string[];
+  topicsCovered: string[];
+  currentDifficulty: 'easy' | 'medium' | 'hard';
+  assessments: AnswerAssessment[];
+}
+
+export interface AdaptiveNextResponse {
+  assessment: AnswerAssessment;
+  nextQuestion: Question;
+  difficultyAdjustment: 'increase' | 'maintain' | 'decrease';
+  acknowledgment: string;
 }

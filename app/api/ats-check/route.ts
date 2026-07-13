@@ -1,7 +1,5 @@
-import { GoogleGenAI } from '@google/genai';
 import { NextResponse } from 'next/server';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+import { executeWithRotation, getApiKeys } from '@/lib/ai';
 
 export async function POST(req: Request) {
   try {
@@ -32,7 +30,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing job description or resume data' }, { status: 400 });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (getApiKeys().length === 0) {
       return NextResponse.json({
         atsScore: 50,
         missingSkills: ['Setup GEMINI_API_KEY'],
@@ -64,14 +62,27 @@ Analyze the match and respond in EXACTLY this JSON format (no markdown, no code 
 
 Be brutally honest and strictly evaluate based on the JD requirements. Only output the JSON.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
+    let result;
+    try {
+      const response = await executeWithRotation((ai) => 
+        ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+        })
+      , 'ATS Check');
 
-    const text = response.text || '';
-    const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const result = JSON.parse(cleanText);
+      const text = response.text || '';
+      const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      result = JSON.parse(cleanText);
+    } catch (error) {
+      console.warn('ATS Check generation failed after all retries.', error);
+      result = {
+        atsScore: 50,
+        missingSkills: ['API Failed - Could not scan'],
+        lackingProjects: 'API rate limits hit, try again later.',
+        recommendations: ['Wait a bit for the API quota to reset before checking your ATS score again.']
+      };
+    }
 
     return NextResponse.json(result);
   } catch (error) {

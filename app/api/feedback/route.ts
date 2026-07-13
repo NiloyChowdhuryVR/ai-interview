@@ -1,9 +1,7 @@
-import { GoogleGenAI } from '@google/genai';
 import { NextResponse } from 'next/server';
 import { buildFeedbackPrompt, calculateCategoryScores, calculateRoundScores } from '@/lib/gemini';
+import { executeWithRotation, getApiKeys } from '@/lib/ai';
 import { AnswerEvaluation, CompanyMode, InterviewFeedback } from '@/lib/types';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +10,7 @@ export async function POST(req: Request) {
       companyMode: CompanyMode;
     };
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (getApiKeys().length === 0) {
       return NextResponse.json({
         overallScore: 0,
         overallGrade: 'Needs Improvement',
@@ -30,43 +28,28 @@ export async function POST(req: Request) {
     const prompt = buildFeedbackPrompt(evaluations, companyMode);
     
     let feedback;
-    let attempts = 0;
-    const maxAttempts = 5;
-
-    while (attempts < maxAttempts) {
-      try {
-        const response = await ai.models.generateContent({
+    try {
+      const response = await executeWithRotation((ai) => 
+        ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: prompt,
-        });
+        })
+      , 'Feedback Generation');
 
-        const text = response.text || '';
-        const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        feedback = JSON.parse(cleanText);
-        break; // Success, exit loop
-      } catch (apiError: any) {
-        attempts++;
-        const isRateLimitOrOverload = apiError?.status === 429 || apiError?.status === 503 || apiError?.message?.includes('429') || apiError?.message?.includes('503') || apiError?.message?.includes('quota') || apiError?.message?.includes('demand');
-        
-        console.warn(`[Gemini API] Feedback generation failed (Attempt ${attempts}/${maxAttempts}). Reason: ${apiError?.message || 'Unknown error'}`);
-        
-        if (attempts < maxAttempts && isRateLimitOrOverload) {
-          console.warn('Rate limit or high demand hit. Waiting 15 seconds before retrying...');
-          await new Promise(r => setTimeout(r, 15000));
-        } else {
-          // Fallback if all retries fail or if it's an unrecoverable JSON parse error
-          feedback = {
-            overallScore: 0,
-            overallGrade: 'Needs Improvement',
-            strengths: ['Completed all interview rounds'],
-            improvements: ['API rate limit hit, real feedback unavailable'],
-            recommendations: ['Wait a bit for the API quota to reset'],
-            summary: `You scored 0/100. We hit the API rate limit so detailed feedback is unavailable.`,
-            evaluations: []
-          };
-          break;
-        }
-      }
+      const text = response.text || '';
+      const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      feedback = JSON.parse(cleanText);
+    } catch (error) {
+      console.warn('Feedback generation failed after all retries.', error);
+      feedback = {
+        overallScore: 0,
+        overallGrade: 'Needs Improvement',
+        strengths: ['Completed all interview rounds'],
+        improvements: ['API rate limit hit, real feedback unavailable'],
+        recommendations: ['Wait a bit for the API quota to reset'],
+        summary: `You scored 0/100. We hit the API rate limit so detailed feedback is unavailable.`,
+        evaluations: []
+      };
     }
 
     // Merge generated evaluations back into the original transcript

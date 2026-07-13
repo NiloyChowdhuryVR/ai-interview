@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useInterviewStore } from '@/store/interviewStore';
 import { COMPANY_MODES, ROUND_LABELS, ROUND_DESCRIPTIONS } from '@/lib/companyModes';
 import { CompanyMode, InterviewRound, ResumeData, Question } from '@/lib/types';
+import LoadingOverlay from './LoadingOverlay';
 import styles from './SetupModal.module.css';
 
 type SetupStep = 'upload' | 'company' | 'rounds' | 'preview';
@@ -27,6 +28,18 @@ export default function SetupModal({ isOpen, onClose }: SetupModalProps) {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
@@ -138,7 +151,8 @@ export default function SetupModal({ isOpen, onClose }: SetupModalProps) {
 
   return (
     <div className={styles.overlay} onClick={handleClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ position: 'relative' }}>
+        {isLoading && <LoadingOverlay message={loadingMessage} />}
         <div className={styles.header}>
           <h2 className={styles.title}>Interview Setup</h2>
           <button className={styles.closeBtn} onClick={handleClose} disabled={isLoading}>✕</button>

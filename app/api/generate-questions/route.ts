@@ -1,13 +1,11 @@
-import { GoogleGenAI } from '@google/genai';
 import { NextResponse } from 'next/server';
 import {
   buildTechnicalQuestionsPrompt,
   buildProjectQuestionsPrompt,
   buildHRQuestionsPrompt,
 } from '@/lib/gemini';
+import { executeWithRotation, getApiKeys } from '@/lib/ai';
 import { ResumeData, CompanyMode, InterviewRound, Question } from '@/lib/types';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 // Fallback questions when no API key is set
 function getFallbackQuestions(round: InterviewRound, resumeData: ResumeData, companyMode: CompanyMode): Question[] {
@@ -72,7 +70,7 @@ export async function POST(req: Request) {
     }
 
     // If no API key, return fallback questions
-    if (!process.env.GEMINI_API_KEY) {
+    if (getApiKeys().length === 0) {
       const fallback = getFallbackQuestions(round, resumeData, companyMode);
       return NextResponse.json({ questions: fallback });
     }
@@ -88,40 +86,25 @@ export async function POST(req: Request) {
     }
 
     let parsed;
-    let attempts = 0;
-    const maxAttempts = 5;
-
-    while (attempts < maxAttempts) {
-      try {
-        const response = await ai.models.generateContent({
+    try {
+      const response = await executeWithRotation((ai) => 
+        ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: prompt,
-        });
+        })
+      , `Generate ${round} Questions`);
         
-        const text = response.text || '';
-        const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        parsed = JSON.parse(cleanText);
-        
-        if (!Array.isArray(parsed?.questions)) {
-          throw new Error('Invalid JSON structure: missing questions array');
-        }
-        
-        break; // Success, exit loop
-      } catch (genError: any) {
-        attempts++;
-        const isRateLimitOrOverload = genError?.status === 429 || genError?.status === 503 || genError?.message?.includes('429') || genError?.message?.includes('503') || genError?.message?.includes('quota') || genError?.message?.includes('demand');
-        
-        console.warn(`[Gemini API] Question generation failed (Attempt ${attempts}/${maxAttempts}). Reason: ${genError?.message || 'Unknown error'}`);
-        
-        if (attempts < maxAttempts && isRateLimitOrOverload) {
-          console.warn('Rate limit or high demand hit. Waiting 15 seconds before retrying...');
-          await new Promise(r => setTimeout(r, 15000));
-        } else if (attempts === maxAttempts) {
-          console.warn('All retries failed. Using fallback questions.');
-          const fallback = getFallbackQuestions(round, resumeData, companyMode);
-          return NextResponse.json({ questions: fallback });
-        }
+      const text = response.text || '';
+      const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsed = JSON.parse(cleanText);
+      
+      if (!Array.isArray(parsed?.questions)) {
+        throw new Error('Invalid JSON structure: missing questions array');
       }
+    } catch (error) {
+      console.warn('All retries failed. Using fallback questions.', error);
+      const fallback = getFallbackQuestions(round, resumeData, companyMode);
+      return NextResponse.json({ questions: fallback });
     }
 
     // Add round field to every question (Gemini doesn't know about our internal type)

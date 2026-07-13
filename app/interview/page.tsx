@@ -11,6 +11,7 @@ import { COMPANY_MODES, ROUND_LABELS } from '@/lib/companyModes';
 import Link from 'next/link';
 import AIVisualizer from '@/components/AIVisualizer';
 import UserVisualizer from '@/components/UserVisualizer';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
 export default function InterviewPage() {
   const router = useRouter();
@@ -561,6 +562,9 @@ export default function InterviewPage() {
         }
       `}} />
 
+      {isProcessing && status === 'completed' && (
+        <LoadingOverlay message="Evaluating your performance... Please wait." isFullScreen={true} />
+      )}
     </div>
   );
 }

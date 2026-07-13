@@ -1,9 +1,7 @@
-import { GoogleGenAI } from '@google/genai';
 import { NextResponse } from 'next/server';
 import { buildResumeParsePrompt } from '@/lib/gemini';
+import { executeWithRotation, getApiKeys } from '@/lib/ai';
 import pdf from 'pdf-parse';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 export async function POST(req: Request) {
   try {
@@ -38,7 +36,7 @@ export async function POST(req: Request) {
     }
 
     // Fallback when no API key: return mock data based on raw text
-    if (!process.env.GEMINI_API_KEY) {
+    if (getApiKeys().length === 0) {
       return NextResponse.json({
         skills: ['JavaScript', 'React', 'Node.js', 'Python', 'SQL'],
         projects: [
@@ -57,52 +55,36 @@ export async function POST(req: Request) {
     const prompt = buildResumeParsePrompt(rawText);
     
     let parsed;
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    while (attempts < maxAttempts) {
-      try {
-        const response = await ai.models.generateContent({
+    try {
+      const response = await executeWithRotation((ai) => 
+        ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: prompt,
-        });
+        })
+      , 'Parse Resume');
 
-        const text = response.text || '';
-        const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        parsed = JSON.parse(cleanText);
-        
-        // Validate minimum required structure
-        if (!Array.isArray(parsed.skills) || !Array.isArray(parsed.projects)) {
-          throw new Error('Invalid JSON structure returned from model');
-        }
-        
-        break; // Success, exit loop
-      } catch (apiError: any) {
-        attempts++;
-        const isRateLimitOrOverload = apiError?.status === 429 || apiError?.status === 503 || apiError?.message?.includes('429') || apiError?.message?.includes('503') || apiError?.message?.includes('quota') || apiError?.message?.includes('demand');
-        
-        console.warn(`[Gemini API] Resume parse failed (Attempt ${attempts}/${maxAttempts}). Reason: ${apiError?.message || 'Unknown error'}`);
-        
-        if (attempts < maxAttempts && isRateLimitOrOverload) {
-          console.warn('Rate limit or high demand hit. Waiting 15 seconds before retrying...');
-          await new Promise(r => setTimeout(r, 15000));
-        } else if (attempts === maxAttempts) {
-          console.warn('All retries failed. Using fallback resume data.');
-          parsed = {
-            skills: ['JavaScript', 'React', 'Node.js', 'Python', 'SQL'],
-            projects: [
-              {
-                name: 'Sample Project',
-                description: 'A full-stack application built during coursework/internship.',
-                technologies: ['React', 'Node', 'Database'],
-              }
-            ],
-            experience: ['Software Developer Intern at TechCorp (2023-2024)'],
-            education: ['B.Tech Computer Science from XYZ University (2024)'],
-            rawText: rawText.slice(0, 2000),
-          };
-        }
+      const text = response.text || '';
+      const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsed = JSON.parse(cleanText);
+      
+      if (!Array.isArray(parsed.skills) || !Array.isArray(parsed.projects)) {
+        throw new Error('Invalid JSON structure returned from model');
       }
+    } catch (error) {
+      console.warn('All retries failed. Using fallback resume data.', error);
+      parsed = {
+        skills: ['JavaScript', 'React', 'Node.js', 'Python', 'SQL'],
+        projects: [
+          {
+            name: 'Sample Project',
+            description: 'A full-stack application built during coursework/internship.',
+            technologies: ['React', 'Node', 'Database'],
+          }
+        ],
+        experience: ['Software Developer Intern at TechCorp (2023-2024)'],
+        education: ['B.Tech Computer Science from XYZ University (2024)'],
+        rawText: rawText.slice(0, 2000),
+      };
     }
 
     return NextResponse.json({

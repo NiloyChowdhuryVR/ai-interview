@@ -9,6 +9,7 @@ export interface CompanyModeConfig {
   technicalFocus: string;    // instructions for technical round
   projectFocus: string;      // instructions for project round
   hrFocus: string;           // instructions for HR round
+  questionsPerRound: Record<InterviewRound, number>;
 }
 
 export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
@@ -27,6 +28,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     hrFocus: `Standard TCS HR questions: Tell me about yourself, Why TCS, Where do you see yourself in 5 years, 
     Strengths and weaknesses, Teamwork scenarios, Relocation willingness, Notice period. 
     Keep it friendly and standard.`,
+    questionsPerRound: { technical: 4, project: 3, hr: 3 },
   },
 
   'tcs-digital': {
@@ -44,6 +46,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     hrFocus: `Situational questions: Give an example of handling a tight deadline, 
     Describe a conflict with a team member and resolution, How do you prioritize tasks, 
     Experience with Agile/Scrum, Leadership examples, Why this role specifically.`,
+    questionsPerRound: { technical: 5, project: 4, hr: 3 },
   },
 
   'tcs-prime': {
@@ -63,6 +66,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     How do you mentor junior developers, Describe your approach to technical debt, 
     How do you stay current with technology, What is your 5-year technical vision, 
     How do you influence without authority.`,
+    questionsPerRound: { technical: 5, project: 4, hr: 3 },
   },
 
   'google': {
@@ -83,6 +87,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     Tell me about a project that failed and what you learned, How do you handle ambiguity, 
     Describe a time you took initiative beyond your role, How do you approach learning something completely new, 
     What makes you a good fit for Google's culture of innovation.`,
+    questionsPerRound: { technical: 5, project: 4, hr: 4 },
   },
 
   'amazon': {
@@ -103,6 +108,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     Hire and Develop the Best, Insist on High Standards, Think Big, Bias for Action, Frugality, 
     Earn Trust, Dive Deep, Have Backbone; Disagree and Commit, Deliver Results. 
     Use the STAR format (Situation, Task, Action, Result).`,
+    questionsPerRound: { technical: 5, project: 4, hr: 4 },
   },
 
   'microsoft': {
@@ -122,6 +128,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     How do you give and receive feedback, Describe a situation where you had to learn something quickly, 
     How do you handle disagreements in code reviews, Describe your ideal team culture, 
     Why Microsoft and this specific team.`,
+    questionsPerRound: { technical: 5, project: 4, hr: 3 },
   },
 
   'meta': {
@@ -142,6 +149,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     How do you balance speed with quality, Describe a time you pushed back on a product decision, 
     What is your philosophy on technical debt, Describe your biggest professional impact, 
     Why Meta and what excites you about our products.`,
+    questionsPerRound: { technical: 5, project: 4, hr: 4 },
   },
 
   'infosys': {
@@ -160,6 +168,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     Are you comfortable with service-based company nature, 
     Willingness to work on any technology/client, Relocation flexibility, 
     Team player examples, Career goals.`,
+    questionsPerRound: { technical: 4, project: 3, hr: 3 },
   },
 
   'wipro': {
@@ -179,6 +188,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     How do you manage stress and deadlines, Why Wipro, 
     Describe your strengths and how they help in a professional setting, 
     What are your long-term goals.`,
+    questionsPerRound: { technical: 4, project: 3, hr: 3 },
   },
 
   'accenture': {
@@ -197,6 +207,7 @@ export const COMPANY_MODES: Record<CompanyMode, CompanyModeConfig> = {
     How do you adapt communication style for different audiences, 
     Give an example of managing multiple priorities, Why consulting, 
     How do you handle ambiguous requirements, Teamwork and collaboration examples.`,
+    questionsPerRound: { technical: 5, project: 4, hr: 3 },
   },
 };
 
