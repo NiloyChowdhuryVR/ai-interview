@@ -55,6 +55,14 @@ const initialState: InterviewState = {
   endTime: null,
   isMicActive: false,
   isSpeaking: false,
+  interviewContext: {
+    technologiesMentioned: [],
+    projectsMentioned: [],
+    conceptsDiscussed: [],
+    topicsCovered: [],
+    currentDifficulty: 'medium',
+    assessments: [],
+  },
 };
 
 export const useInterviewStore = create<InterviewStore>((set, get) => ({
