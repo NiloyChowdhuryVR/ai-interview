@@ -4,8 +4,8 @@ let currentKeyIndex = 0;
 
 /**
  * Retrieves an array of all available API keys from environment variables.
- * Automatically scans for any variable starting with GEMINI_API_KEY (e.g. GEMINI_API_KEY_1, GEMINI_API_KEY_2).
- * Also supports a comma-separated list in GEMINI_API_KEYS.
+ * Checks GEMINI_API_KEYS (comma-separated) and statically checks GEMINI_API_KEY_1 through GEMINI_API_KEY_10.
+ * (Note: Next.js statically replaces process.env at build time, so Object.entries(process.env) doesn't work reliably).
  */
 export function getApiKeys(): string[] {
   const keys: Set<string> = new Set();
@@ -18,10 +18,24 @@ export function getApiKeys(): string[] {
     });
   }
 
-  // 2. Dynamically scan all environment variables for GEMINI_API_KEY prefixes
-  for (const [key, value] of Object.entries(process.env)) {
-    if (key.startsWith('GEMINI_API_KEY') && value && typeof value === 'string') {
-      const trimmed = value.trim();
+  // 2. Statically check numbered keys to ensure Next.js bundler includes them
+  const envVars = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_1,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3,
+    process.env.GEMINI_API_KEY_4,
+    process.env.GEMINI_API_KEY_5,
+    process.env.GEMINI_API_KEY_6,
+    process.env.GEMINI_API_KEY_7,
+    process.env.GEMINI_API_KEY_8,
+    process.env.GEMINI_API_KEY_9,
+    process.env.GEMINI_API_KEY_10,
+  ];
+
+  for (const val of envVars) {
+    if (val && typeof val === 'string') {
+      const trimmed = val.trim();
       if (trimmed.length > 0) {
         keys.add(trimmed);
       }
