@@ -141,6 +141,18 @@ export default function InterviewPage() {
       setFeedback(feedback);
       // Ensure it's stored BEFORE we navigate
       sessionStorage.setItem('interviewFeedback', JSON.stringify(feedback));
+
+      // Attempt to save to database (will only work if user is authenticated via Clerk)
+      try {
+        await fetch('/api/save-interview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ feedback }),
+        });
+      } catch (saveErr) {
+        console.error('Failed to save interview to DB:', saveErr);
+      }
+
       await new Promise(r => setTimeout(r, 100)); // tiny wait for sessionStorage write
       router.push('/dashboard');
     } catch (err) {

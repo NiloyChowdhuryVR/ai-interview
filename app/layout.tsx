@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from '@clerk/nextjs';
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 
@@ -38,8 +39,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${outfit.variable} antialiased`}>
       <body>
-        <BackgroundEffects />
-        {children}
+        <ClerkProvider appearance={{ variables: { colorPrimary: '#ff5500' } }}>
+          <BackgroundEffects />
+          {children}
+        </ClerkProvider>
       </body>
     </html>
   );

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ResumeDataState } from '@/components/ResumePDF';
+import AiResumeAssistantModal from '@/components/AiResumeAssistantModal';
+import AiResumeGeneratorWizard from '@/components/AiResumeGeneratorWizard';
 
 // Dynamically import our custom PDFPreview component to disable SSR entirely for React-PDF
 const PDFPreview = dynamic(
@@ -27,6 +29,22 @@ export default function ResumeBuilderPage() {
   const [isChecking, setIsChecking] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'ats'>('editor');
   const [uploadedResume, setUploadedResume] = useState<File | null>(null);
+
+  // AI Assistant State
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiModalField, setAiModalField] = useState('');
+  const [aiModalText, setAiModalText] = useState('');
+  const [aiModalApply, setAiModalApply] = useState<(suggestion: string) => void>(() => {});
+
+  const openAiAssistant = (field: string, currentText: string, applyFn: (suggestion: string) => void) => {
+    setAiModalField(field);
+    setAiModalText(currentText);
+    setAiModalApply(() => applyFn);
+    setAiModalOpen(true);
+  };
+
+  // Full Resume Wizard State
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const checkAtsScore = async () => {
     if (!jobDescription) return alert('Please enter a Job Description');
@@ -119,6 +137,25 @@ export default function ResumeBuilderPage() {
           {activeTab === 'editor' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
               
+              {/* Magic Full Resume Button */}
+              <button 
+                onClick={() => setWizardOpen(true)}
+                style={{
+                  width: '100%', padding: '20px', background: 'linear-gradient(90deg, #111116, #1a1a24)', 
+                  border: '1px solid #333', borderRadius: '12px', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: '10px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', transition: 'all 0.2s ease',
+                  position: 'relative', overflow: 'hidden'
+                }}
+                onMouseOver={e => e.currentTarget.style.border = '1px solid #ff5500'}
+                onMouseOut={e => e.currentTarget.style.border = '1px solid #333'}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: 'linear-gradient(90deg, #ff5500, #ff8800)' }} />
+                <span style={{ fontSize: '2rem' }}>🪄</span>
+                <span style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 'bold' }}>Generate Full Resume with AI</span>
+                <span style={{ color: '#888', fontSize: '0.85rem' }}>Answer a few chat questions and let AI build your perfect 90+ ATS-scoring resume.</span>
+              </button>
+
               {/* Personal Info */}
               <section>
                 <h3 style={{ color: '#ff5500', marginBottom: '15px', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Personal Info</h3>
@@ -133,6 +170,12 @@ export default function ResumeBuilderPage() {
               <div className="mt-8">
               <h3 className="text-[#ff5500] font-bold text-sm tracking-wider mb-4 flex items-center justify-between">
                 SUMMARY
+                <button 
+                  onClick={() => openAiAssistant('summary', data.summary, (text) => setData({ ...data, summary: text }))}
+                  style={{ background: 'linear-gradient(90deg, #ff5500, #ff8800)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  ✨ AI Assist
+                </button>
               </h3>
               <textarea
                 placeholder="Professional Summary"
@@ -156,7 +199,15 @@ export default function ResumeBuilderPage() {
                       <input placeholder="Company" value={exp.company} onChange={e => handleArrayChange('experience', i, 'company', e.target.value)} style={inputStyle} />
                       <input placeholder="Date (e.g. Jan 2022 - Present)" value={exp.date} onChange={e => handleArrayChange('experience', i, 'date', e.target.value)} style={inputStyle} />
                     </div>
-                    <textarea placeholder="Bullet points (one per line)" value={exp.description} onChange={e => handleArrayChange('experience', i, 'description', e.target.value)} style={{...inputStyle, height: '80px', resize: 'vertical'}} />
+                    <div style={{ position: 'relative' }}>
+                      <textarea placeholder="Bullet points (one per line)" value={exp.description} onChange={e => handleArrayChange('experience', i, 'description', e.target.value)} style={{...inputStyle, height: '80px', resize: 'vertical'}} />
+                      <button 
+                        onClick={() => openAiAssistant(`experience ${i+1}`, exp.description, (text) => handleArrayChange('experience', i, 'description', text))}
+                        style={{ position: 'absolute', right: '10px', bottom: '20px', background: 'rgba(255,85,0,0.1)', color: '#ff5500', border: '1px solid rgba(255,85,0,0.3)', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        ✨ AI
+                      </button>
+                    </div>
                   </div>
                 ))}
               </section>
@@ -175,7 +226,15 @@ export default function ResumeBuilderPage() {
                       <input placeholder="Date" value={proj.date} onChange={e => handleArrayChange('projects', i, 'date', e.target.value)} style={inputStyle} />
                     </div>
                     <input placeholder="Technologies Used (e.g. React, Node.js)" value={proj.tech || ''} onChange={e => handleArrayChange('projects', i, 'tech', e.target.value)} style={{...inputStyle, marginBottom: '10px'}} />
-                    <textarea placeholder="Bullet points (one per line)" value={proj.description} onChange={e => handleArrayChange('projects', i, 'description', e.target.value)} style={{...inputStyle, height: '80px', resize: 'vertical'}} />
+                    <div style={{ position: 'relative' }}>
+                      <textarea placeholder="Bullet points (one per line)" value={proj.description} onChange={e => handleArrayChange('projects', i, 'description', e.target.value)} style={{...inputStyle, height: '80px', resize: 'vertical'}} />
+                      <button 
+                        onClick={() => openAiAssistant(`project ${i+1}`, proj.description, (text) => handleArrayChange('projects', i, 'description', text))}
+                        style={{ position: 'absolute', right: '10px', bottom: '20px', background: 'rgba(255,85,0,0.1)', color: '#ff5500', border: '1px solid rgba(255,85,0,0.3)', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        ✨ AI
+                      </button>
+                    </div>
                   </div>
                 ))}
               </section>
@@ -200,7 +259,15 @@ export default function ResumeBuilderPage() {
 
               {/* Skills */}
               <section>
-                <h3 style={{ color: '#ff5500', marginBottom: '15px', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Technical Skills</h3>
+                <h3 style={{ color: '#ff5500', marginBottom: '15px', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between' }}>
+                  Technical Skills
+                  <button 
+                    onClick={() => openAiAssistant('skills', data.skills, (text) => setData(prev => ({ ...prev, skills: text })))}
+                    style={{ background: 'linear-gradient(90deg, #ff5500, #ff8800)', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    ✨ AI Assist
+                  </button>
+                </h3>
                 <textarea 
                   placeholder="Languages, Frameworks, Tools (comma separated or grouped)" 
                   value={data.skills} 
@@ -363,7 +430,21 @@ export default function ResumeBuilderPage() {
           <PDFPreview data={data} />
         </div>
       </div>
+      
+      <AiResumeAssistantModal 
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onApply={aiModalApply}
+        fieldName={aiModalField}
+        currentText={aiModalText}
+        resumeData={data}
+      />
 
+      <AiResumeGeneratorWizard 
+        isOpen={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onComplete={(generatedData) => setData(generatedData)}
+      />
     </div>
   );
 }

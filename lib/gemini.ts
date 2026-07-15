@@ -266,13 +266,20 @@ Respond in EXACTLY this JSON format (no markdown, no code blocks, just raw JSON)
 }
 
 Scoring Rubric per Question (${modeConfig.difficulty} level):
-- 9-10: Excellent — Comprehensive, highly detailed, technically accurate.
-- 7-8: Good — Solid understanding with minor gaps.
-- 5-6: Average — High-level or brief response. Lacks deep technical specifics.
-- 3-4: Weak — Extremely brief, vague, or misses the core of the question.
-- 0-2: Poor/Unanswered — Factually incorrect, skipped, or zero effort.
+- 9-10: Exceptional — Perfect technical depth, highly structured, handles edge cases perfectly.
+- 7-8: Solid — Good technical understanding, but missed minor details or deeper optimizations.
+- 4-6: Passable — Vague, high-level overview. Lacks precise technical vocabulary or depth.
+- 1-3: Poor — Fundamentally flawed, completely misses the point, or extremely brief 1-sentence answer.
+- 0: Unanswered/Failed — Dodged the question entirely, "I don't know", or completely factually incorrect.
 
-CRITICAL: Your "evaluations" array MUST contain exactly one evaluation object for every question asked above, in the exact same order. Base the overall score on all individual question scores weighted equally. Only output the JSON, nothing else.`;
+CRITICAL SCORING INSTRUCTIONS:
+1. Be brutally strict and highly critical, exactly like a real Senior Engineer at ${modeConfig.label}.
+2. Do NOT inflate scores. Do not give out "pity points".
+3. A short, one-sentence answer to a complex technical question MUST receive a score of 1 or 2, absolutely never higher. 
+4. 5 is NOT a default score for a bad answer. Bad answers get 1-3.
+5. Your "evaluations" array MUST contain exactly one evaluation object for every question asked above, in the exact same order. 
+
+Base the overallScore (0-100) strictly on the weighted average of individual question scores. Only output the JSON, nothing else.`;
 }
 
 // ─── Category Score Calculator ────────────────────────────────────────────────

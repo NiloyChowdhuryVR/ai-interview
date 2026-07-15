@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useInterviewStore } from '@/store/interviewStore';
+import { useAuth, useClerk } from '@clerk/nextjs';
 import SetupModal from '@/components/SetupModal';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -16,6 +17,8 @@ gsap.registerPlugin(useGSAP);
 
 export default function Home() {
   const { reset: resetStore } = useInterviewStore();
+  const { isSignedIn } = useAuth();
+  const clerk = useClerk();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const ideRef = useRef<HTMLDivElement>(null);
@@ -118,7 +121,13 @@ export default function Home() {
           </p>
           
           <div className={styles.actions}>
-            <button className={styles.primaryBtn} onClick={() => setIsModalOpen(true)}>
+            <button className={styles.primaryBtn} onClick={() => {
+              if (!isSignedIn) {
+                clerk.openSignIn();
+              } else {
+                setIsModalOpen(true);
+              }
+            }}>
               Get Started ↗
             </button>
             <Link href="/resume-builder">
